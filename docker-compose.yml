@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    environment:
+      APP_NAME: ${APP_NAME:-MaxBridge}
+      ENVIRONMENT: ${ENVIRONMENT:-local}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://maxbridge:maxbridge@postgres:5432/maxbridge}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://maxbridge.app}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-MaxBridgeBot}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-000000:replace-me}
+      MAX_MESSAGE_LENGTH: ${MAX_MESSAGE_LENGTH:-4000}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      RATE_LIMIT_MAX_MESSAGES: ${RATE_LIMIT_MAX_MESSAGES:-20}
+    command: sh -c "alembic upgrade head && uvicorn maxbridge.main:create_app --factory --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: maxbridge
+      POSTGRES_USER: maxbridge
+      POSTGRES_PASSWORD: maxbridge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maxbridge -d maxbridge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres_data:

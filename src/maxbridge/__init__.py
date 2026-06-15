@@ -1,0 +1,1 @@
+"""MaxBridge service package."""
