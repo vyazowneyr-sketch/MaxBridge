@@ -27,45 +27,25 @@ Dependency direction:
 
 ```text
 .
-├── alembic/
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/
-│       └── 202606150001_initial.py
-├── src/
-│   └── maxbridge/
-│       ├── api/
-│       │   ├── dependencies.py
-│       │   ├── errors.py
-│       │   ├── routes.py
-│       │   ├── schemas.py
-│       │   └── webhook_adapters.py
-│       ├── application/
-│       │   ├── dto.py
-│       │   ├── ports.py
-│       │   ├── services.py
-│       │   └── use_cases.py
-│       ├── domain/
-│       │   ├── entities.py
-│       │   └── exceptions.py
-│       ├── infrastructure/
-│       │   ├── config.py
-│       │   ├── db.py
-│       │   ├── gateways.py
-│       │   ├── models.py
-│       │   ├── rate_limit.py
-│       │   ├── repositories.py
-│       │   └── unit_of_work.py
-│       └── main.py
-├── tests/
-│   ├── fakes.py
-│   └── test_use_cases.py
-├── .env.example
-├── .dockerignore
-├── Dockerfile
-├── alembic.ini
-├── docker-compose.yml
-└── pyproject.toml
+|-- alembic/
+|   |-- env.py
+|   |-- script.py.mako
+|   `-- versions/
+|       `-- 202606150001_initial.py
+|-- src/
+|   `-- maxbridge/
+|       |-- api/
+|       |-- application/
+|       |-- domain/
+|       |-- infrastructure/
+|       `-- main.py
+|-- tests/
+|-- .env.example
+|-- .dockerignore
+|-- Dockerfile
+|-- alembic.ini
+|-- docker-compose.yml
+`-- pyproject.toml
 ```
 
 ## Key Decisions
@@ -92,14 +72,65 @@ Dependency direction:
 {"user_id": "max-user-id", "text": "message text"}
 ```
 
+## Docker Compose Configuration
+
+For the bundled PostgreSQL service, do not set `DATABASE_URL` in `.env`.
+Compose builds the internal URL itself and points the API to the service DNS name `postgres`.
+
+Use these variables instead:
+
+```env
+APP_NAME=MaxBridge
+ENVIRONMENT=production
+POSTGRES_DB=maxbridge
+POSTGRES_USER=maxbridge
+POSTGRES_PASSWORD=change-me
+PUBLIC_BASE_URL=https://maxbridge.app
+TELEGRAM_BOT_USERNAME=MaxBridgeBot
+TELEGRAM_BOT_TOKEN=000000:replace-me
+MAX_MESSAGE_LENGTH=4000
+RATE_LIMIT_WINDOW_SECONDS=60
+RATE_LIMIT_MAX_MESSAGES=20
+```
+
+If an old `.env` contains `DATABASE_URL=...`, remove that line before deploying this compose file.
+
 ## Local Run
 
 ```bash
-# Optional: copy .env.example to .env and set real bot/public URL values.
 docker compose up --build
 ```
 
 The API listens on `http://localhost:8000`.
+
+## Server Fix For DNS Error
+
+If the API logs contain:
+
+```text
+socket.gaierror: [Errno -2] Name or service not known
+```
+
+then the API container cannot resolve the database hostname from `DATABASE_URL`.
+With this compose file, redeploy with:
+
+```bash
+docker compose down
+docker compose up --build -d
+docker compose logs -f api
+```
+
+Check the final API environment:
+
+```bash
+docker compose exec api env | grep DATABASE_URL
+```
+
+Expected host inside the URL:
+
+```text
+@postgres:5432
+```
 
 ## Development
 

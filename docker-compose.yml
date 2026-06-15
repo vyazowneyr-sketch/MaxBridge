@@ -1,10 +1,11 @@
 services:
   api:
     build: .
+    restart: unless-stopped
     environment:
       APP_NAME: ${APP_NAME:-MaxBridge}
       ENVIRONMENT: ${ENVIRONMENT:-local}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://maxbridge:maxbridge@postgres:5432/maxbridge}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-maxbridge}:${POSTGRES_PASSWORD:-maxbridge}@postgres:5432/${POSTGRES_DB:-maxbridge}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://maxbridge.app}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-MaxBridgeBot}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-000000:replace-me}
@@ -20,16 +21,17 @@ services:
 
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: maxbridge
-      POSTGRES_USER: maxbridge
-      POSTGRES_PASSWORD: maxbridge
+      POSTGRES_DB: ${POSTGRES_DB:-maxbridge}
+      POSTGRES_USER: ${POSTGRES_USER:-maxbridge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-maxbridge}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U maxbridge -d maxbridge"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 20
