@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     public_base_url: str = "https://maxbridge.app"
     telegram_bot_username: str = "MaxBridgeBot"
     telegram_bot_token: str = "000000:dev-token"
+    telegram_drop_pending_updates: bool = True
 
     max_message_length: int = Field(default=4000, ge=1, le=4000)
     rate_limit_window_seconds: float = Field(default=60.0, gt=0)

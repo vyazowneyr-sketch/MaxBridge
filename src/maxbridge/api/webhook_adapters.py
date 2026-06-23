@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from aiogram.types import Message as TelegramMessage
 from aiogram.types import Update
 
 from maxbridge.api.schemas import MaxWebhookPayload
@@ -44,8 +45,15 @@ class TelegramWebhookAdapter:
     async def handle_update(self, payload: Mapping[str, Any]) -> dict[str, bool]:
         update = Update.model_validate(payload)
         message = update.message
-        if message is None or message.text is None or message.from_user is None:
+        if message is None:
             return {"ok": True}
+
+        await self.handle_message(message)
+        return {"ok": True}
+
+    async def handle_message(self, message: TelegramMessage) -> None:
+        if message.text is None or message.from_user is None:
+            return
 
         telegram_user = message.from_user
         telegram_user_id = str(telegram_user.id)
@@ -59,7 +67,7 @@ class TelegramWebhookAdapter:
                     telegram_user_id,
                     "Откройте публичную ссылку MaxBridge и нажмите Start в этом боте.",
                 )
-                return {"ok": True}
+                return
 
             try:
                 await self._start_conversation(
@@ -73,7 +81,7 @@ class TelegramWebhookAdapter:
                     telegram_user_id,
                     "Публичная ссылка MaxBridge не найдена или уже недействительна.",
                 )
-            return {"ok": True}
+            return
 
         try:
             await self._send_message_to_max(telegram_user_id=telegram_user_id, text=text)
@@ -97,7 +105,6 @@ class TelegramWebhookAdapter:
                 telegram_user_id,
                 "Активный диалог не найден. Откройте публичную ссылку MaxBridge заново.",
             )
-        return {"ok": True}
 
     @staticmethod
     def _parse_start_command(text: str) -> StartCommand:

@@ -53,6 +53,7 @@ Dependency direction:
 - Database writes are wrapped in an application-level Unit of Work.
 - Use cases depend on Protocol ports, not FastAPI, SQLAlchemy, or aiogram.
 - The Telegram gateway uses aiogram `Bot`; Max uses `MockMaxGateway` because the real API is unknown.
+- Telegram can run in polling mode through the `telegram-poller` container.
 - `public_id` is generated with `secrets` and internal messenger IDs are never exposed publicly.
 - Message validation and rate limiting happen in use cases before persistence.
 - MVP active conversation lookup uses the latest `active` conversation.
@@ -88,6 +89,7 @@ POSTGRES_PASSWORD=change-me
 PUBLIC_BASE_URL=https://maxbridge.app
 TELEGRAM_BOT_USERNAME=MaxBridgeBot
 TELEGRAM_BOT_TOKEN=000000:replace-me
+TELEGRAM_DROP_PENDING_UPDATES=true
 MAX_MESSAGE_LENGTH=4000
 RATE_LIMIT_WINDOW_SECONDS=60
 RATE_LIMIT_MAX_MESSAGES=20
@@ -101,7 +103,22 @@ If an old `.env` contains `DATABASE_URL=...`, remove that line before deploying 
 docker compose up --build
 ```
 
-The API listens on `http://localhost:8000`.
+The API listens on `http://localhost:8000`. The `telegram-poller` service starts
+aiogram long polling and deletes the Telegram webhook on startup.
+
+Telegram supports either webhook or polling for one bot token, not both. If you
+previously configured a webhook manually, the poller removes it with
+`deleteWebhook`. To check Telegram state:
+
+```bash
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
+```
+
+For polling logs:
+
+```bash
+docker compose logs -f telegram-poller
+```
 
 ## Server Fix For DNS Error
 
@@ -118,6 +135,7 @@ With this compose file, redeploy with:
 docker compose down
 docker compose up --build -d
 docker compose logs -f api
+docker compose logs -f telegram-poller
 ```
 
 Check the final API environment:
